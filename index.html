@@ -20,6 +20,17 @@
   (function(){var d=document.documentElement;d.classList.add("js");
     try{var t=localStorage.getItem("s1-theme");if(t==="light"||t==="dark")d.dataset.theme=t}catch(e){}})();
 </script>
+<!-- Google Analytics (luongnv.com property) — only on the public site, so local/LAN copies don't skew visit counts -->
+<script>
+  if(/(^|\.)luongnv\.com$/.test(location.hostname)){
+    var ga=document.createElement("script");ga.async=true;
+    ga.src="https://www.googletagmanager.com/gtag/js?id=G-FZV5YX8YPT";document.head.appendChild(ga);
+    window.dataLayer=window.dataLayer||[];
+    window.gtag=function(){dataLayer.push(arguments);};
+    gtag("js",new Date());
+    gtag("config","G-FZV5YX8YPT");
+  }
+</script>
 <style>
 /* =====================================================================
    DESIGN TOKENS
@@ -690,7 +701,7 @@ html.js .reveal:not(.in){opacity:0;transform:translateY(18px)}
           </div>
         </div>
       </section>
-      <p class="pg-foot"><span>No account</span><span>No tracking</span><span>Talks to your local Kev by default — <a href="#api">setup in §6</a></span></p>
+      <p class="pg-foot"><span>No account</span><span>Your state &amp; key go only to your endpoint</span><span>Talks to your local Kev by default — <a href="#api">setup in §6</a></span></p>
     </div>
   </div>
 </div>
