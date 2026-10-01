@@ -168,7 +168,7 @@ pre mark{background:none;color:var(--green);font-weight:600}
 .scoretrack .seg.on{background:var(--ink);color:#fff}
 
 /* ---------- playground ---------- */
-.pg{border:1px solid var(--ink)}
+.pg{border:1px solid var(--ink);scroll-margin-top:64px}
 .pg .pghead{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--gray);
   border-bottom:1px solid var(--ink);padding:9px 14px;display:flex;gap:18px;align-items:center;text-transform:uppercase}
 .pg .pghead .dot{width:8px;height:8px;border-radius:50%;background:var(--gray)}
@@ -247,13 +247,13 @@ footer{border-top:1px solid var(--ink);margin-top:80px}
   <div class="topin">
     <div class="brand">SYSTEM<b>/</b>ONE <span class="muted">· field guide + playground</span></div>
     <nav class="ix" aria-label="Sections">
+      <a href="#playground"><span class="n">▸</span> playground</a>
       <a href="#what"><span class="n">01</span> what</a>
       <a href="#vs"><span class="n">02</span> vs&nbsp;llm</a>
       <a href="#when"><span class="n">03</span> when</a>
       <a href="#anatomy"><span class="n">04</span> anatomy</a>
       <a href="#questions"><span class="n">05</span> questions</a>
       <a href="#api"><span class="n">06</span> api</a>
-      <a href="#playground"><span class="n">07</span> playground</a>
     </nav>
     <a class="ghlink" href="https://github.com/luongnv89/system1">github ↗</a>
   </div>
@@ -268,11 +268,70 @@ footer{border-top:1px solid var(--ink);margin-top:80px}
     <span class="tag rv">SPEC <b>·</b> TYPED JUDGMENTS <b>·</b> NO PROSE</span>
     <h1 class="rv d1">A model that answers<br>decisions, not paragraphs.</h1>
     <p class="def rv d2">A <em>System One</em> model takes your application <em>state</em> plus a set of <em>typed questions</em> — yes/no, pick-one, rate — and returns <em>probabilities</em>, not text. One call in, one judgment out, shaped exactly like your code expects.</p>
-    <div class="cta rv d3">
-      <a class="btn solid" href="#playground">OPEN THE PLAYGROUND →</a>
-      <a class="btn" href="#anatomy">READ THE CONTRACT</a>
+    <div class="cta rv d3" style="align-items:center">
+      <span class="mono" style="font-size:12px;color:var(--gray)">▼ live below — hits a real endpoint</span>
+      <a class="btn" href="#what" style="border-style:dashed">or read how it works ↓</a>
     </div>
   </div>
+
+  <!-- ============ PLAYGROUND (hero) ============ -->
+  <div class="pg rv d3" id="playground" style="margin-top:8px">
+    <div class="pghead">
+      <span class="dot" id="pgdot"></span>
+      <span id="pgtarget">target: http://localhost:8009/v1</span>
+      <span style="margin-left:auto">S1/PLAYGROUND v1</span>
+    </div>
+    <div class="cols">
+      <!-- LEFT: request builder -->
+      <div class="left">
+        <div class="cfg">
+          <div>
+            <label class="f" for="ep">Endpoint base URL</label>
+            <input class="tx" id="ep" value="http://localhost:8009/v1" spellcheck="false">
+          </div>
+          <div>
+            <label class="f" for="model">Model</label>
+            <input class="tx" id="model" value="kev-latest" spellcheck="false">
+          </div>
+          <div>
+            <label class="f" for="key">API key <span style="text-transform:none">(optional)</span></label>
+            <input class="tx" id="key" type="password" placeholder="—" autocomplete="off">
+          </div>
+        </div>
+
+        <label class="f" for="state">State <span style="text-transform:none">(JSON — what your app knows)</span></label>
+        <textarea class="tx" id="state" spellcheck="false" style="min-height:110px"></textarea>
+        <div class="presets">
+          <span class="stat" style="align-self:center">presets →</span>
+          <button class="preset" data-preset="review">product review</button>
+          <button class="preset" data-preset="phish">phishing email</button>
+          <button class="preset" data-preset="refund">refund ticket</button>
+        </div>
+
+        <label class="f">Questions</label>
+        <div id="qlist"></div>
+        <button class="iconbtn" id="addq" style="margin-top:10px;padding:7px 14px">+ add question</button>
+
+        <div class="sendrow">
+          <button class="send" id="send">SEND ▸</button>
+          <span class="stat" id="status"></span>
+        </div>
+      </div>
+
+      <!-- RIGHT: response -->
+      <div class="right">
+        <label class="f" style="margin-top:0">Answers</label>
+        <div id="out">
+          <div class="empty">press <span class="k">SEND ▸</span> — typed judgments land here</div>
+        </div>
+        <details class="raw" id="rawwrap" hidden>
+          <summary>raw request / response JSON</summary>
+          <pre id="raw" style="background:#fff;color:var(--ink);border-top:1px solid var(--hair)"></pre>
+        </details>
+      </div>
+    </div>
+  </div>
+  <p class="rev" style="margin-top:10px">no account · no tracking · default demo is a review classifier against your local kev — <a href="#api">wire-up details in §6</a></p>
   </div>
 </div>
 
@@ -501,8 +560,8 @@ Authorization: Bearer &lt;key&gt; <span class="c"># hosted Jev only; kev needs n
       <div class="spec" style="margin-top:14px">
         <header><span>EX. C</span><span>REVIEW MODERATION</span></header>
         <div class="body" style="font-size:13.5px">
-          <p class="mono" style="font-size:12px;margin:0 0 8px">choice "sentiment" · noul "fake_review" · score "stars"</p>
-          <p class="muted" style="margin:0 0 10px">Classification and a suspicion flag on a product review.</p>
+          <p class="mono" style="font-size:12px;margin:0 0 8px">choice "sentiment" · noul "recommend"</p>
+          <p class="muted" style="margin:0 0 10px">Classification and a buy/no-buy flag on a product review — the simplest possible call, and this site's default demo.</p>
           <button class="btn" data-load="review">LOAD INTO PLAYGROUND</button>
         </div>
       </div>
@@ -594,70 +653,6 @@ escalateIf(answers.angry.noul >= 0.7);</pre>
 
 <hr class="hr">
 
-<!-- ============ 07 PLAYGROUND ============ -->
-<section id="playground">
-  <span class="kicker">07 / LIVE</span>
-  <h2><span class="no">§7</span>Playground</h2>
-  <p class="lede">Point it at any <code>/v1/systemone</code> endpoint — a local Kev is the default. Edit the state, shape the questions, watch real probabilities come back.</p>
-
-  <div class="pg" style="margin-top:20px">
-    <div class="pghead">
-      <span class="dot" id="pgdot"></span>
-      <span id="pgtarget">target: http://localhost:8009/v1</span>
-      <span style="margin-left:auto">S1/PLAYGROUND v1</span>
-    </div>
-    <div class="cols">
-      <!-- LEFT: request builder -->
-      <div class="left">
-        <div class="cfg">
-          <div>
-            <label class="f" for="ep">Endpoint base URL</label>
-            <input class="tx" id="ep" value="http://localhost:8009/v1" spellcheck="false">
-          </div>
-          <div>
-            <label class="f" for="model">Model</label>
-            <input class="tx" id="model" value="kev-latest" spellcheck="false">
-          </div>
-          <div>
-            <label class="f" for="key">API key <span style="text-transform:none">(optional)</span></label>
-            <input class="tx" id="key" type="password" placeholder="—" autocomplete="off">
-          </div>
-        </div>
-
-        <label class="f" for="state">State <span style="text-transform:none">(JSON — what your app knows)</span></label>
-        <textarea class="tx" id="state" spellcheck="false"></textarea>
-        <div class="presets">
-          <span class="stat" style="align-self:center">presets →</span>
-          <button class="preset" data-preset="phish">phishing email</button>
-          <button class="preset" data-preset="refund">refund ticket</button>
-          <button class="preset" data-preset="review">product review</button>
-        </div>
-
-        <label class="f">Questions</label>
-        <div id="qlist"></div>
-        <button class="iconbtn" id="addq" style="margin-top:10px;padding:7px 14px">+ add question</button>
-
-        <div class="sendrow">
-          <button class="send" id="send">SEND ▸</button>
-          <span class="stat" id="status"></span>
-        </div>
-      </div>
-
-      <!-- RIGHT: response -->
-      <div class="right">
-        <label class="f" style="margin-top:0">Answers</label>
-        <div id="out">
-          <div class="empty">press <span class="k">SEND ▸</span> — typed judgments land here</div>
-        </div>
-        <details class="raw" id="rawwrap" hidden>
-          <summary>raw request / response JSON</summary>
-          <pre id="raw" style="background:#fff;color:var(--ink);border-top:1px solid var(--hair)"></pre>
-        </details>
-      </div>
-    </div>
-  </div>
-</section>
-
 </main>
 
 <footer>
@@ -704,14 +699,12 @@ const PRESETS = {
   },
   review: {
     state: {
-      review: "Absolutely perfect! Best purchase ever!! 10/10 would buy again!!!",
-      product: "USB-C cable",
-      reviewer_history: "3 reviews, all 5 stars, all posted the same day"
+      review: "Battery died after two weeks. Support never replied.",
+      product: "wireless earbuds"
     },
     questions: [
-      {name:"sentiment", type:"choice", instructions:"What is the overall sentiment of this review?", criteria:{positive:null, negative:null, mixed:null}},
-      {name:"fake_review", type:"noul", instructions:"Is this review likely fake or incentivized?", criteria:{}},
-      {name:"stars", type:"score", instructions:"What star rating does the review express?", criteria:["1 star","2 stars","3 stars","4 stars","5 stars"]}
+      {name:"sentiment", type:"choice", instructions:"Is this review positive or negative?", criteria:{positive:null, negative:null, mixed:null}},
+      {name:"recommend", type:"noul", instructions:"Does this review recommend buying the product?", criteria:{}}
     ]
   }
 };
@@ -824,7 +817,7 @@ $("#addq").addEventListener("click", ()=>{
   renderQuestions();
 });
 
-function loadPreset(key){
+function loadPreset(key, scroll=true){
   syncFromDOM();
   const p = PRESETS[key];
   $("#state").value = JSON.stringify(p.state,null,2);
@@ -832,7 +825,7 @@ function loadPreset(key){
   for(const qq of p.questions) QUESTIONS.push({...JSON.parse(JSON.stringify(qq)), _id:"q"+(++qSeq)});
   renderQuestions();
   document.querySelectorAll(".preset").forEach(b=>b.classList.toggle("on", b.dataset.preset===key));
-  $("#playground").scrollIntoView({behavior:"smooth",block:"start"});
+  if(scroll) $("#playground").scrollIntoView({behavior:"smooth",block:"start"});
 }
 document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>loadPreset(b.dataset.preset)));
 document.querySelectorAll("[data-load]").forEach(b=>b.addEventListener("click",()=>loadPreset(b.dataset.load)));
@@ -946,8 +939,8 @@ document.querySelectorAll(".copy").forEach(b=>b.addEventListener("click",()=>{
   navigator.clipboard.writeText(el.innerText).then(()=>{b.textContent="copied ✓";setTimeout(()=>b.textContent="copy",1200)});
 }));
 
-/* boot with the phishing preset */
-loadPreset("phish");
+/* boot with the review preset — simplest possible demo (no scroll: hero IS the playground) */
+loadPreset("review", false);
 </script>
 </body>
 </html>

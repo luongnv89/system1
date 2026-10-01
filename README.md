@@ -4,17 +4,19 @@ A single-page explainer and live playground for **System One models** — models
 answer *typed questions* (`noul`, `choice`, `score`) about application state and return
 probabilities instead of prose.
 
-**Live site:** https://luongnv89.github.io/system1/
+**Live site:** https://luongnv.com/system1/
 
 ## What's inside
 
+- **Playground first** — the hero *is* a live form: point it at any `/v1/systemone`
+  endpoint, edit the state, build typed questions, inspect real probabilities.
+  Boots on a review classifier (sentiment choice + recommend noul); presets load
+  phishing and refund demos.
 - What a System One model is, and how it differs from a general LLM
 - When to use one (routing, detection, policy, triage) — and when not to
 - The `POST /v1/systemone` request/response contract, annotated
 - Rules for writing good questions + three worked examples
 - Copy-paste curl / Python / JavaScript integration snippets
-- A **live playground**: point the form at any `/v1/systemone` endpoint, edit the
-  state, build typed questions, and inspect real probabilities in the browser
 
 ## Backends the playground speaks to
 
