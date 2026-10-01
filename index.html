@@ -351,7 +351,9 @@ textarea.tx{min-height:132px;resize:vertical;line-height:1.6}
 .stat{font-size:12.5px;color:var(--muted);font-family:var(--mono)}
 @media (max-width:560px){.send{width:100%}}
 
-.pane-h{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;font-size:14px;font-weight:600}
+.pane-h{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;margin:0 0 12px;font-size:14px;font-weight:600}
+.pane-h .stat{font-weight:400;text-align:right;margin-left:auto}
+@media (max-width:560px){.pane-h .stat{flex-basis:100%;text-align:left;margin-left:0}}
 .empty{display:grid;place-items:center;text-align:center;gap:12px;padding:56px 20px;border:1px dashed var(--line-2);
   border-radius:var(--r);color:var(--muted);font-size:14px;background:var(--surface)}
 .empty svg{width:38px;height:38px;color:var(--line-3)}
@@ -725,13 +727,12 @@ html.js .reveal:not(.in){opacity:0;transform:translateY(18px)}
             <div class="sendrow">
               <button class="btn btn-primary send" id="send" type="button">Run query
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M8.5 3.5 13 8l-4.5 4.5"/></svg></button>
-              <span class="stat" id="status" role="status" aria-live="polite"></span>
             </div>
           </div>
 
           <!-- RIGHT: response -->
           <div class="right">
-            <div class="pane-h">Answers</div>
+            <div class="pane-h"><span>Answers</span><span class="stat" id="status" role="status" aria-live="polite"></span></div>
             <div id="out" aria-live="polite">
               <div class="empty">
                 <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5" y="9" width="30" height="5" rx="2.5"/><rect x="5" y="18" width="20" height="5" rx="2.5"/><rect x="5" y="27" width="12" height="5" rx="2.5"/></svg>
