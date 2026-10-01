@@ -24,7 +24,7 @@ probabilities instead of prose.
 |---|---|---|---|
 | Kev (local, OSS) | `http://localhost:8009/v1` | none | `kev-latest` |
 | Ollama 0.35+ (local, Nimble) | `http://localhost:11434/v1` | none (needs `OLLAMA_ORIGINS`) | `nimble` |
-| Jev (hosted, TypeSafe) | `https://api.typesafe.ai/v1` | `Authorization: Bearer KEY` | `jev-latest` |
+| Jev (hosted, TypeSafe) | `https://api.typesafe.ai/v1` | `Authorization: Bearer KEY` | `jev-latest` — **code only**: the API rejects browser calls from other sites (`Disallowed CORS origin`) |
 
 Run a local Kev backend:
 
@@ -36,23 +36,40 @@ python -m kev.serve --run jaredpalmer/kev-4b --port 8009
 Or run Nimble on Ollama (0.35+ serves `/v1/systemone` natively; only Nimble/Tev models):
 
 ```bash
-ollama pull nimble                                   # ~9 GB, 9B Q8_0
-OLLAMA_ORIGINS="https://luongnv.com" ollama serve    # allow the page's origin
-# add OLLAMA_HOST=0.0.0.0:11434 to reach it from other devices
+ollama pull nimble          # ~9 GB, 9B Q8_0
 ```
 
-The playground's **Setup guide** walks through this and fills in the right origin for wherever the
-page is served.
+To call it from **https://luongnv.com**, Ollama must trust that origin — exactly
+`https://luongnv.com` (no path, no trailing slash; comma-separate several):
 
-`kev.serve` sets `Access-Control-Allow-Origin: *`, so the site can call it straight
-from the browser. Two gotchas:
+| How Ollama runs | Set the origin |
+|---|---|
+| macOS app | `launchctl setenv OLLAMA_ORIGINS "https://luongnv.com"`, then quit & reopen Ollama (cleared on reboot) |
+| Linux service | `sudo systemctl edit ollama.service` → `[Service]` / `Environment="OLLAMA_ORIGINS=https://luongnv.com"`, then `sudo systemctl daemon-reload && sudo systemctl restart ollama` |
+| Windows | quit Ollama from the tray, `setx OLLAMA_ORIGINS "https://luongnv.com"`, start Ollama again |
+| Terminal | `OLLAMA_ORIGINS="https://luongnv.com" ollama serve` |
 
-- **Private Network Access**: Chrome/Edge block a public-HTTPS page from fetching
-  `http://localhost` or a LAN IP. Serve this page locally (`git clone` → `python3 -m
-  http.server` → `http://localhost:8000`), use Firefox/Safari, or expose the
-  endpoint over HTTPS.
-- **LAN access**: `kev.serve` binds `127.0.0.1` by default — start it with
-  `--host 0.0.0.0` to reach it from other devices (e.g. `http://192.168.x.x:8009/v1`).
+Check it — a browser-style preflight should return `204` with
+`Access-Control-Allow-Origin: https://luongnv.com` (a `403` means the variable wasn't picked up):
+
+```bash
+curl -i -X OPTIONS http://localhost:11434/v1/systemone \
+  -H "Origin: https://luongnv.com" -H "Access-Control-Request-Method: POST"
+```
+
+The playground's **Setup guide** walks through all of this (per OS) and fills in the right origin
+for wherever the page is served.
+
+Browser gotchas:
+
+- **Local network permission**: luongnv.com is HTTPS; calling `http://localhost` or a LAN IP from it
+  makes Chrome/Edge 142+ ask once for local network access — click Allow (or re-enable it under the
+  site-info icon → Local network access). Fallback: serve this page locally (`git clone` →
+  `python3 -m http.server` → `http://localhost:8000`) — localhost pages need no permission and
+  Ollama trusts them by default.
+- **LAN access**: Kev and Ollama bind `127.0.0.1` by default — use `--host 0.0.0.0` /
+  `OLLAMA_HOST=0.0.0.0:11434` to reach them from other devices. `kev.serve` allows every origin.
+- **Jev**: TypeSafe's API allows no outside origins, so use it from curl / Python / Node.
 
 ## Measured numbers cited on the page
 

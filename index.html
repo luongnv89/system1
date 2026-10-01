@@ -311,6 +311,13 @@ textarea.tx{min-height:132px;resize:vertical;line-height:1.6}
 .guide li p.small{font-size:12.5px;color:var(--muted);margin:8px 0 0}
 .guide li p:last-child{margin-bottom:0}
 .guide .warn-t{font-size:12.5px}
+.ostabs{display:flex;flex-wrap:wrap;gap:2px;padding:3px;margin:2px 0 10px;width:fit-content;max-width:100%;
+  border:1px solid var(--line-2);border-radius:10px;background:var(--surface)}
+.ostabs button{height:28px;padding:0 11px;border-radius:7px;border:1px solid transparent;background:none;cursor:pointer;
+  font:500 12.5px/1 var(--sans);color:var(--muted);transition:color .15s,border-color .15s}
+.ostabs button:hover{color:var(--text)}
+.ostabs button[aria-pressed="true"]{color:var(--text);border-color:var(--green)}
+.guide li .cmd+.cmd,.guide li .cmd+p{margin-top:8px}
 .cmd{display:flex;align-items:flex-start;gap:8px;background:var(--code-bg);border-radius:var(--r-sm);padding:9px 9px 9px 14px;border:1px solid var(--line-2)}
 .cmd pre{padding:2px 0 0;background:none;font-size:12.5px;line-height:1.6;flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .cmd .copy{flex-shrink:0}
@@ -793,7 +800,7 @@ html.js .reveal:not(.in){opacity:0;transform:translateY(18px)}
       </div>
     </div>
 
-    <p class="prose reveal">The contract was introduced by TypeSafe's hosted model <a href="https://typesafe.dev">Jev</a> (<code>api.typesafe.ai</code>) and is implemented open-source by <a href="https://github.com/jaredpalmer/kev">Kev</a> — small local models (0.8B–27B) whose <code>kev.serve</code> exposes the same <code>POST&nbsp;/v1/systemone</code> API — and natively by <a href="https://ollama.com">Ollama</a> 0.35+ with its <code>nimble</code> model. The playground above speaks that contract to all three.</p>
+    <p class="prose reveal">The contract was introduced by TypeSafe's hosted model <a href="https://typesafe.dev">Jev</a> (<code>api.typesafe.ai</code>) and is implemented open-source by <a href="https://github.com/jaredpalmer/kev">Kev</a> — small local models (0.8B–27B) whose <code>kev.serve</code> exposes the same <code>POST&nbsp;/v1/systemone</code> API — and natively by <a href="https://ollama.com">Ollama</a> 0.35+ with its <code>nimble</code> model. The playground above talks to Kev and Ollama straight from your browser; Jev's API currently only accepts calls from code.</p>
   </div>
 </section>
 
@@ -1022,6 +1029,7 @@ Authorization: Bearer &lt;key&gt; <span class="c"># hosted Jev only; kev needs n
           <div><dt>Base URL</dt><dd>https://api.typesafe.ai/v1</dd></div>
           <div><dt>Auth</dt><dd>Authorization: Bearer KEY</dd></div>
           <div><dt>Model</dt><dd>jev-latest</dd></div>
+          <div><dt>Browser</dt><dd>blocked by CORS — call from code</dd></div>
         </dl>
       </div>
     </div>
@@ -1089,8 +1097,8 @@ escalateIf(answers.angry.noul >= 0.7);</pre></div>
     <div class="note warn reveal">
       <div>
         <p><b>Can't connect from the browser?</b></p>
-        <p><code>kev.serve</code> sends <code>Access-Control-Allow-Origin: *</code>, so a page can call it directly — but Chrome's Private Network Access blocks an HTTPS page from fetching <code>http://localhost</code> or a LAN IP. The server also binds <code>127.0.0.1</code> by default; start it with <code>--host 0.0.0.0</code> to reach it from another device.</p>
-        <p><b>Fixes:</b> serve this page locally (<code>git clone</code> → <code>python3 -m http.server</code> → <code>http://localhost:8000</code>), use Firefox or Safari, or expose the endpoint over HTTPS. Hosted Jev over HTTPS is unaffected.</p>
+        <p>Three gates sit between this page and a model. <b>Reachability:</b> Kev and Ollama listen on <code>127.0.0.1</code> by default — use <code>--host 0.0.0.0</code> / <code>OLLAMA_HOST=0.0.0.0:11434</code> to reach them from another device. <b>The server must trust this site (CORS):</b> Kev allows every origin; Ollama needs <code>OLLAMA_ORIGINS="https://luongnv.com"</code> (<button class="linkbtn" type="button" data-open-guide="ollama">setup guide</button>); TypeSafe's API currently allows no outside sites, so use Jev from code. <b>Your browser must allow local access:</b> on an HTTPS page like luongnv.com, Chrome and Edge 142+ ask once before calling <code>localhost</code> or a LAN IP — click Allow, or re-enable it under the site-info icon → Local network access.</p>
+        <p><b>Simplest fallback:</b> serve this page locally (<code>git clone</code> → <code>python3 -m http.server</code> → <code>http://localhost:8000</code>) — localhost pages need no permission, and Ollama trusts them by default.</p>
       </div>
     </div>
   </div>
@@ -1352,6 +1360,7 @@ const BACKENDS = {
 /* the origin Ollama must allow — file:// pages report "null", which only "*" covers */
 const PAGE_ORIGIN = location.origin && location.origin!=="null" ? location.origin : "*";
 const isOllamaURL = u => /:11434(\/|$)/.test(u);
+const isJevURL = u => /typesafe\.ai/.test(u);
 
 /* ---------------- send ---------------- */
 const out = $("#out"), raw = $("#raw"), rawwrap = $("#rawwrap"), status = $("#status"), sendBtn = $("#send"), dot = $("#pgdot");
@@ -1467,14 +1476,17 @@ sendBtn.addEventListener("click", async ()=>{
     const isPriv  = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/.test(host);
     const httpsPage = location.protocol === "https:";
     let hint = "";
-    if(httpsPage && (isLocal || isPriv))
-      hint = `This HTTPS page can't reach <b>${esc(host)}</b> in Chrome/Edge — Private Network Access blocks public→private fetches. ` +
-             `Fixes: serve this page locally (<span class="mono">git clone · python3 -m http.server</span> → <b>http://localhost:8000</b>, which also unlocks LAN targets), ` +
-             `use Firefox or Safari, or put the endpoint behind a real HTTPS URL (e.g. a cloudflared tunnel).`;
+    const permHint = `your browser must allow this site to reach your local network — Chrome/Edge 142+ ask once; if you clicked Block, use the site-info icon left of the address bar → <b>Local network access</b> → Allow, then reload`;
+    if(isJevURL(base))
+      hint = `TypeSafe's API only accepts browser calls from websites on its own allowlist — it answers this page's pre-check with <span class="mono">Disallowed CORS origin</span>, so the browser drops the request before your key is even checked. ` +
+             `Jev works from code (curl, Python, Node — see §6), where this browser rule doesn't apply. To use it here, TypeSafe would need to allow <span class="mono">${esc(PAGE_ORIGIN)}</span>.`;
     else if(isOllamaURL(base))
-      hint = `Ollama refuses browser calls from origins it doesn't trust, and the request fails exactly like this. ` +
-             `Restart it with <span class="mono">OLLAMA_ORIGINS="${esc(PAGE_ORIGIN)}"${isPriv?" OLLAMA_HOST=0.0.0.0:11434":""} ollama serve</span>, ` +
-             `then check it answers: <span class="mono">curl ${esc(base)}/models</span>. <button class="linkbtn" type="button" data-open-guide="ollama">Open the Ollama setup guide</button>`;
+      hint = `Usually one of these: <b>(1)</b> Ollama doesn't trust this site — set <span class="mono">OLLAMA_ORIGINS="${esc(ORIGINS)}"</span>${isPriv?" (plus <span class=\"mono\">OLLAMA_HOST=0.0.0.0:11434</span> on that machine)":""} and fully restart Ollama; ` +
+             (httpsPage && (isLocal||isPriv) ? `<b>(2)</b> ${permHint}; <b>(3)</b>` : `<b>(2)</b>`) +
+             ` Ollama isn't running — <span class="mono">curl ${esc(base)}/models</span> should answer. <button class="linkbtn" type="button" data-open-guide="ollama">Open the Ollama setup guide</button>`;
+    else if(httpsPage && (isLocal || isPriv))
+      hint = `This HTTPS page is calling a server on your own network, so ${permHint}. Also check the server is up: <span class="mono">curl ${esc(base)}/models</span>. ` +
+             `Still blocked? Serve this page locally (<span class="mono">git clone · python3 -m http.server</span> → <b>http://localhost:8000</b>) or put the endpoint behind HTTPS.`;
     else if(isLocal)
       hint = `Check the server is actually running: <span class="mono">curl ${esc(base)}/models</span>. Start one with <span class="mono">python -m kev.serve --run jaredpalmer/kev-4b --port 8009</span>.`;
     else if(isPriv)
@@ -1528,25 +1540,65 @@ function setBackend(k){
   if(!guide.hidden) renderGuide(k);
 }
 
+/* Ollama only answers browsers whose Origin is in OLLAMA_ORIGINS (localhost pages are trusted by default).
+   Always include the public site; add this page's own origin when it's served from somewhere else. */
+const PUBLIC_ORIGIN = "https://luongnv.com";
+const isDefaultTrusted = o => /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(o);
+const EXTRA_ORIGIN = PAGE_ORIGIN!=="*" && PAGE_ORIGIN!==PUBLIC_ORIGIN && !isDefaultTrusted(PAGE_ORIGIN) ? PAGE_ORIGIN : "";
+const ORIGINS = [PUBLIC_ORIGIN, EXTRA_ORIGIN].filter(Boolean).join(",");
+const CHECK_ORIGIN = EXTRA_ORIGIN || PUBLIC_ORIGIN;
+let guideKey = "ollama";
+let guideOS = /Mac|iPhone|iPad/.test(navigator.userAgent) ? "mac" : /Win/.test(navigator.userAgent) ? "win" : "linux";
+const OS_LABELS = {mac:"macOS app", linux:"Linux service", win:"Windows", term:"Terminal"};
+
+function originBlocks(os){
+  const O = ORIGINS;
+  if(os==="mac") return [
+    {cmd:`launchctl setenv OLLAMA_ORIGINS "${O}"`},
+    {note:"Then quit Ollama from the menu bar and open it again — it only reads the variable at start-up. <code>launchctl setenv</code> is cleared on reboot, so re-run it after a restart."}];
+  if(os==="linux") return [
+    {p:"The install script runs Ollama as a systemd service. Open an override file:"},
+    {cmd:"sudo systemctl edit ollama.service"},
+    {p:"Add these two lines, save and close:"},
+    {cmd:`[Service]\nEnvironment="OLLAMA_ORIGINS=${O}"`},
+    {p:"Reload and restart so Ollama picks it up (this survives reboots):"},
+    {cmd:"sudo systemctl daemon-reload\nsudo systemctl restart ollama"}];
+  if(os==="win") return [
+    {p:"Quit Ollama from the system tray first, then in PowerShell or Command Prompt:"},
+    {cmd:`setx OLLAMA_ORIGINS "${O}"`},
+    {note:"Start Ollama again from the Start menu. Same as adding a user environment variable in Settings → <i>Edit environment variables for your account</i>."}];
+  return [
+    {p:"Stop any running Ollama app or service first, then start the server yourself:"},
+    {cmd:`OLLAMA_ORIGINS="${O}" ollama serve`},
+    {note:"Works on any OS; lasts as long as this terminal stays open."}];
+}
+
 function guideSteps(k){
-  const o = esc(PAGE_ORIGIN);
   if(k==="ollama") return {
     title:"Run System One on Ollama", sub:"Nimble · 9B · Q8_0",
-    intro:"Ollama 0.35+ serves <code>/v1/systemone</code> natively. It only answers with Nimble or Tev models.",
+    intro:`Ollama 0.35+ serves <code>/v1/systemone</code> natively (Nimble or Tev models only). To use it from <b>${esc(PUBLIC_ORIGIN.replace("https://",""))}</b>, two gates must open: <b>Ollama must trust the site</b> (step 3) and <b>your browser must allow the local connection</b> (step 5).`,
     steps:[
       {t:"Install Ollama 0.35 or newer",
        p:`macOS / Windows: download the app from <a href="https://ollama.com/download">ollama.com</a>. Linux:`,
        cmd:"curl -fsSL https://ollama.com/install.sh | sh\nollama --version        # needs 0.35.0 or newer"},
       {t:"Pull the Nimble model", p:"About a 9 GB download; runs comfortably on a 12 GB GPU or Apple silicon.", cmd:"ollama pull nimble"},
-      {t:"Start Ollama and allow this page",
-       p:"Browsers can only call Ollama from origins it trusts, so pass this page's origin:",
-       cmd:`OLLAMA_ORIGINS="${PAGE_ORIGIN}" ollama serve`,
-       note:`Calling from another device? Prefix <code>OLLAMA_HOST=0.0.0.0:11434</code>. Already running Ollama as an app or service? Quit it first, or set the variable there — Linux: <code>sudo systemctl edit ollama</code> → <code>Environment="OLLAMA_ORIGINS=${o}"</code>; macOS: <code>launchctl setenv OLLAMA_ORIGINS "${o}"</code>, then restart the app.` +
-            (location.protocol==="https:" ? ` <span class="warn-t">Chrome/Edge also block HTTPS pages from calling localhost — use Firefox/Safari, or serve this page locally (§6).</span>` : "")},
-      {t:"Smoke-test from a terminal",
-       cmd:`curl -s http://localhost:11434/v1/systemone \\\n  -H 'content-type: application/json' \\\n  -d '{"model":"nimble","state":{"text":"I love it"},\n       "questions":{"positive":{"type":"noul","instructions":"Is this positive?"}}}'`,
-       note:`Expect <code>"noul": 0.99…</code>. The first call loads the model (a few seconds); after that, ~0.1–0.2 s.`},
-      {t:"Point the playground at it", p:`Base URL <code>${esc(BACKENDS.ollama.base)}</code>, model <code>nimble</code>, no API key.`, use:true}
+      {t:`Let Ollama accept requests from ${esc(PUBLIC_ORIGIN.replace("https://",""))}`,
+       p:`Ollama rejects browser requests from websites it doesn't know (HTTP 403). Add the site to <code>OLLAMA_ORIGINS</code> — exactly <code>${esc(PUBLIC_ORIGIN)}</code>: scheme and host only, no <code>/system1</code> path, no trailing slash. Separate several origins with commas.` +
+         (EXTRA_ORIGIN ? ` This copy is served from <code>${esc(EXTRA_ORIGIN)}</code>, so that's included too.` : ""),
+       os:true,
+       note:"Ollama on another machine? Also set <code>OLLAMA_HOST=0.0.0.0:11434</code> the same way, and use that machine's LAN IP as the base URL."},
+      {t:"Check that Ollama now trusts the site",
+       p:"This sends the same pre-check (preflight) a browser does:",
+       cmd:`curl -i -X OPTIONS http://localhost:11434/v1/systemone \\\n  -H "Origin: ${CHECK_ORIGIN}" \\\n  -H "Access-Control-Request-Method: POST"`,
+       blocks:[
+         {note:`<b>Good:</b> <code>HTTP/1.1 204 No Content</code> with <code>Access-Control-Allow-Origin: ${esc(CHECK_ORIGIN)}</code>. <b>403 Forbidden</b> means Ollama didn't pick up the variable — fully quit and restart it, and check the spelling.`},
+         {p:"Then make sure the model answers:"},
+         {cmd:`curl -s http://localhost:11434/v1/systemone \\\n  -H 'content-type: application/json' \\\n  -d '{"model":"nimble","state":{"text":"I love it"},\n       "questions":{"positive":{"type":"noul","instructions":"Is this positive?"}}}'`},
+         {note:`Expect <code>"noul": 0.99…</code>. The first call loads the model (a few seconds); after that, ~0.1–0.2 s.`}]},
+      {t:`Allow local network access in your browser`,
+       p:`${esc(PUBLIC_ORIGIN.replace("https://",""))} is an HTTPS site talking to a server on your machine, so Chrome and Edge (142+) ask once — <i>“wants to access other apps and services on this device”</i> or <i>“…devices on your local network”</i>. Click <b>Allow</b>.`,
+       note:"Clicked Block by mistake? Click the site-info icon left of the address bar → <b>Local network access</b> → Allow, then reload. Firefox may ask the same way. Safari can refuse HTTPS → <code>http://localhost</code> calls; if it does, use Chrome, Edge or Firefox."},
+      {t:"Point the playground at it", p:`Base URL <code>${esc(BACKENDS.ollama.base)}</code>, model <code>nimble</code>, no API key — then press <b>Run query</b>.`, use:true}
     ]};
   if(k==="kev") return {
     title:"Run Kev locally", sub:"0.8B – 27B · open source",
@@ -1559,19 +1611,28 @@ function guideSteps(k){
     ]};
   return {
     title:"Use hosted Jev", sub:"TypeSafe · HTTPS",
-    intro:"No local setup — you only need an API key.",
+    intro:`<span class="warn-t"><b>Heads-up:</b> TypeSafe's API currently refuses calls made by browsers on other websites (it answers <code>Disallowed CORS origin</code>), so Jev can't run from this playground.</span> It works fine from code with your API key.`,
     steps:[
       {t:"Get an API key", p:`Sign up at <a href="https://typesafe.dev">typesafe.dev</a>.`},
-      {t:"Point the playground at it", p:`Base URL <code>${esc(BACKENDS.jev.base)}</code>, model <code>jev-latest</code>, then paste your key into <b>API key</b>.`,
+      {t:"Call it from a terminal or your backend",
+       cmd:`curl -s https://api.typesafe.ai/v1/systemone \\\n  -H "authorization: Bearer $TYPESAFE_KEY" \\\n  -H 'content-type: application/json' \\\n  -d '{"model":"jev-latest","state":{"text":"I love it"},\n       "questions":{"positive":{"type":"noul","instructions":"Is this positive?"}}}'`,
+       note:"Python and JavaScript versions are in §6 — same body, same answers."},
+      {t:"In this playground (once TypeSafe allows it)", p:`Base URL <code>${esc(BACKENDS.jev.base)}</code>, model <code>jev-latest</code>, then paste your key into <b>API key</b>. TypeSafe would need to allow <code>${esc(PAGE_ORIGIN)}</code>.`,
        note:"The key stays in this tab and is sent only to the endpoint above.", use:true}
     ]};
 }
 function renderGuide(k){
+  guideKey = k;
   const g = guideSteps(k);
+  let n = 0;
+  const block = b => b.cmd ? `<div class="cmd"><pre id="gcmd-${++n}">${esc(b.cmd)}</pre><button class="copy" type="button" data-copy="gcmd-${n}">Copy</button></div>`
+                   : b.p ? `<p>${b.p}</p>` : b.note ? `<p class="small">${b.note}</p>` : "";
+  const osTabs = () => `<div class="ostabs" role="group" aria-label="How Ollama runs on your machine">` +
+    Object.entries(OS_LABELS).map(([os,lab])=>`<button type="button" data-os="${os}" aria-pressed="${os===guideOS}">${lab}</button>`).join("") + `</div>` +
+    originBlocks(guideOS).map(block).join("");
   guide.innerHTML = `<div class="guide-h"><h4>${g.title}</h4><span>${g.sub}</span></div><p>${g.intro}</p><ol>` +
-    g.steps.map((s,i)=>`<li><div><b class="t">${s.t}</b>${s.p?`<p>${s.p}</p>`:""}` +
-      (s.cmd?`<div class="cmd"><pre id="gcmd-${i}">${esc(s.cmd)}</pre><button class="copy" type="button" data-copy="gcmd-${i}">Copy</button></div>`:"") +
-      (s.note?`<p class="small">${s.note}</p>`:"") +
+    g.steps.map(s=>`<li><div><b class="t">${s.t}</b>` +
+      block({p:s.p}) + block({cmd:s.cmd}) + (s.os ? osTabs() : "") + (s.blocks||[]).map(block).join("") + block({note:s.note}) +
       (s.use?`<button class="btn btn-sm btn-primary" type="button" data-use="${k}" style="margin-top:4px">Use ${BACKENDS[k].label}</button>`:"") +
     `</div></li>`).join("") + `</ol>`;
 }
@@ -1585,6 +1646,8 @@ $("#ep").addEventListener("input", ()=>{ markBackend(); const k=currentBackend()
 
 /* delegated clicks: copy buttons (incl. generated guide commands), guide links, "Use …" buttons */
 document.addEventListener("click", e=>{
+  const os = e.target.closest("[data-os]");
+  if(os){ guideOS = os.dataset.os; renderGuide(guideKey); guide.querySelector(`[data-os="${guideOS}"]`)?.focus(); return; }
   const og = e.target.closest("[data-open-guide]");
   if(og){ setGuide(true, og.dataset.openGuide, true); return; }
   const use = e.target.closest("[data-use]");
