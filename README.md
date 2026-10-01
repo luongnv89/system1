@@ -31,8 +31,14 @@ python -m kev.serve --run jaredpalmer/kev-4b --port 8009
 ```
 
 `kev.serve` sets `Access-Control-Allow-Origin: *`, so the site can call it straight
-from the browser. If Chrome blocks `https → http://localhost` via Private Network
-Access, serve this page locally (`python3 -m http.server`) or use Firefox/Safari.
+from the browser. Two gotchas:
+
+- **Private Network Access**: Chrome/Edge block a public-HTTPS page from fetching
+  `http://localhost` or a LAN IP. Serve this page locally (`git clone` → `python3 -m
+  http.server` → `http://localhost:8000`), use Firefox/Safari, or expose the
+  endpoint over HTTPS.
+- **LAN access**: `kev.serve` binds `127.0.0.1` by default — start it with
+  `--host 0.0.0.0` to reach it from other devices (e.g. `http://192.168.x.x:8009/v1`).
 
 ## Measured numbers cited on the page
 

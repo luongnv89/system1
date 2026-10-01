@@ -584,10 +584,11 @@ escalateIf(answers.angry.noul >= 0.7);</pre>
   </div>
 
   <div class="callout warn">
-    <b>Browser note.</b> <code>kev.serve</code> sends <code>Access-Control-Allow-Origin: *</code>, so this page can call it directly —
-    but Chrome's Private Network Access may still block an HTTPS page → <code>http://localhost</code> fetch. If the playground shows a
-    connection error, either serve this page locally (<code>git clone</code> → <code>python3 -m http.server</code> → <code>http://localhost:8000</code>),
-    try Firefox/Safari, or expose your endpoint over HTTPS (a tunnel works). Hosted Jev over HTTPS is unaffected.
+    <b>Browser note.</b> <code>kev.serve</code> sends <code>Access-Control-Allow-Origin: *</code>, so a page can call it directly —
+    but Chrome's Private Network Access blocks an HTTPS page → <code>http://localhost</code> or LAN-IP fetch. Also note the server
+    binds <code>127.0.0.1</code> by default: to reach it from another device, start it with <code>--host 0.0.0.0</code>. If the playground
+    shows a connection error: serve this page locally (<code>git clone</code> → <code>python3 -m http.server</code> → <code>http://localhost:8000</code>),
+    use Firefox/Safari, or expose the endpoint over HTTPS. Hosted Jev over HTTPS is unaffected.
   </div>
 </section>
 
@@ -919,9 +920,23 @@ $("#send").addEventListener("click", async ()=>{
     $("#pgdot").classList.add("up");
   }catch(e){
     status.textContent = "";
-    out.innerHTML = `<div class="err"><b>CONNECTION FAILED</b><br>${esc(e.message)}
-      <div class="hint">If your endpoint is <b>http://localhost</b> and this page is served over HTTPS, Chrome's Private Network Access may be blocking the call. Fixes: serve this page locally (<span class="mono">python3 -m http.server</span>), use Firefox/Safari, or expose the endpoint over HTTPS. Also check the server is actually running: <span class="mono">curl ${esc(base)}/models</span></div></div>`;
     $("#pgdot").classList.remove("up");
+    const host = /^https?:\/\/([^/:]+)/i.exec(base)?.[1] ?? "";
+    const isLocal = /^(localhost|127\.)/.test(host);
+    const isPriv  = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/.test(host);
+    const httpsPage = location.protocol === "https:";
+    let hint = "";
+    if(httpsPage && (isLocal || isPriv))
+      hint = `This HTTPS page can't reach <b>${esc(host)}</b> in Chrome/Edge — Private Network Access blocks public→private fetches. ` +
+             `Fixes: serve this page locally (<span class="mono">git clone · python3 -m http.server</span> → <b>http://localhost:8000</b>, which also unlocks LAN targets), ` +
+             `use Firefox or Safari, or put the endpoint behind a real HTTPS URL (e.g. a cloudflared tunnel).`;
+    else if(isLocal)
+      hint = `Check the server is actually running: <span class="mono">curl ${esc(base)}/models</span>. Start one with <span class="mono">python -m kev.serve --run jaredpalmer/kev-4b --port 8009</span>.`;
+    else if(isPriv)
+      hint = `Check reachability: <span class="mono">curl ${esc(base)}/models</span> — and make sure the server listens on <b>0.0.0.0</b> (<span class="mono">kev.serve --host 0.0.0.0</span>), not just 127.0.0.1.`;
+    else
+      hint = `Check the server is running and reachable: <span class="mono">curl ${esc(base)}/models</span>. For hosted endpoints, confirm the API key and CORS policy.`;
+    out.innerHTML = `<div class="err"><b>CONNECTION FAILED</b><br>${esc(e.message)}<div class="hint">${hint}</div></div>`;
   }finally{ $("#send").disabled = false; }
 });
 
