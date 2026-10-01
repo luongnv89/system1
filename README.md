@@ -24,7 +24,10 @@ probabilities instead of prose.
 |---|---|---|---|
 | Kev (local, OSS) | `http://localhost:8009/v1` | none | `kev-latest` |
 | Ollama 0.35+ (local, Nimble) | `http://localhost:11434/v1` | none (needs `OLLAMA_ORIGINS`) | `nimble` |
-| Jev (hosted, TypeSafe) | `https://api.typesafe.ai/v1` | `Authorization: Bearer KEY` | `jev-latest` — **code only**: the API rejects browser calls from other sites (`Disallowed CORS origin`) |
+
+Jev (TypeSafe's hosted model, `https://api.typesafe.ai/v1`, `jev-latest`) speaks the same
+contract but its API rejects browser calls from other sites (`Disallowed CORS origin`), so it
+isn't offered in the playground — call it from curl / Python / Node with `Authorization: Bearer KEY`.
 
 Run a local Kev backend:
 
@@ -69,7 +72,6 @@ Browser gotchas:
   Ollama trusts them by default.
 - **LAN access**: Kev and Ollama bind `127.0.0.1` by default — use `--host 0.0.0.0` /
   `OLLAMA_HOST=0.0.0.0:11434` to reach them from other devices. `kev.serve` allows every origin.
-- **Jev**: TypeSafe's API allows no outside origins, so use it from curl / Python / Node.
 
 ## Measured numbers cited on the page
 

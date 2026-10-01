@@ -690,7 +690,6 @@ html.js .reveal:not(.in){opacity:0;transform:translateY(18px)}
               <span class="lbl">Backend</span>
               <button class="bk" type="button" data-backend="kev">Kev <small>local</small></button>
               <button class="bk" type="button" data-backend="ollama">Ollama <small>Nimble</small></button>
-              <button class="bk" type="button" data-backend="jev">Jev <small>hosted</small></button>
               <button class="linkbtn" type="button" id="guideBtn" aria-expanded="false" aria-controls="guide">Setup guide
                 <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
             </div>
@@ -706,7 +705,7 @@ html.js .reveal:not(.in){opacity:0;transform:translateY(18px)}
               </div>
               <div>
                 <label class="f" for="key">API key <span class="opt">(optional)</span></label>
-                <input class="tx" id="key" type="password" placeholder="Jev only" autocomplete="off">
+                <input class="tx" id="key" type="password" placeholder="only if required" autocomplete="off">
               </div>
             </div>
 
@@ -1353,9 +1352,8 @@ $$("[data-load]").forEach(b=>b.addEventListener("click",()=>loadPreset(b.dataset
 
 /* ---------------- backends ---------------- */
 const BACKENDS = {
-  kev:    {label:"Kev",             base:"http://localhost:8009/v1",   model:"kev-latest", key:false},
-  ollama: {label:"Ollama · Nimble", base:"http://localhost:11434/v1",  model:"nimble",     key:false},
-  jev:    {label:"Jev",             base:"https://api.typesafe.ai/v1", model:"jev-latest", key:true},
+  kev:    {label:"Kev",             base:"http://localhost:8009/v1",  model:"kev-latest"},
+  ollama: {label:"Ollama · Nimble", base:"http://localhost:11434/v1", model:"nimble"},
 };
 /* the origin Ollama must allow — file:// pages report "null", which only "*" covers */
 const PAGE_ORIGIN = location.origin && location.origin!=="null" ? location.origin : "*";
@@ -1456,7 +1454,7 @@ sendBtn.addEventListener("click", async ()=>{
       status.textContent = "HTTP "+r.status+" · "+dt+" ms";
       const msg = JSON.stringify(j.detail??j.error??j,null,0);
       let hint = "Open the raw JSON below for the full response.";
-      if(r.status===401||r.status===403) hint = "Check the API key — hosted Jev needs one.";
+      if(r.status===401||r.status===403) hint = "Check the API key — this endpoint requires one.";
       if(isOllamaURL(base) && /not found|pull/i.test(msg))
         hint = `Ollama doesn't have that model yet — run <span class="mono">ollama pull ${esc(model||"nimble")}</span>, then try again.`;
       else if(isOllamaURL(base) && /System One/i.test(msg))
@@ -1525,7 +1523,7 @@ const guide = $("#guide"), guideBtn = $("#guideBtn");
 
 function currentBackend(){
   const v = $("#ep").value;
-  return /:11434(\/|$)/.test(v) ? "ollama" : /typesafe\.ai/.test(v) ? "jev" : /:8009(\/|$)/.test(v) ? "kev" : null;
+  return /:11434(\/|$)/.test(v) ? "ollama" : /:8009(\/|$)/.test(v) ? "kev" : null;
 }
 function markBackend(){
   const cur = currentBackend();
@@ -1534,7 +1532,6 @@ function markBackend(){
 function setBackend(k){
   const b = BACKENDS[k];
   $("#ep").value = b.base; $("#model").value = b.model; $("#pgtarget").textContent = b.base;
-  $("#key").placeholder = b.key ? "required" : "not needed";
   dot.classList.remove("up","down");
   markBackend();
   if(!guide.hidden) renderGuide(k);
@@ -1600,7 +1597,7 @@ function guideSteps(k){
        note:"Clicked Block by mistake? Click the site-info icon left of the address bar → <b>Local network access</b> → Allow, then reload. Firefox may ask the same way. Safari can refuse HTTPS → <code>http://localhost</code> calls; if it does, use Chrome, Edge or Firefox."},
       {t:"Point the playground at it", p:`Base URL <code>${esc(BACKENDS.ollama.base)}</code>, model <code>nimble</code>, no API key — then press <b>Run query</b>.`, use:true}
     ]};
-  if(k==="kev") return {
+  return {
     title:"Run Kev locally", sub:"0.8B – 27B · open source",
     intro:"Small open models with a built-in System One server.",
     steps:[
@@ -1608,17 +1605,6 @@ function guideSteps(k){
       {t:"Start the server", cmd:"python -m kev.serve --run jaredpalmer/kev-4b --port 8009",
        note:"Weights download on first run. Kev allows every origin, so no browser setup is needed. Add <code>--host 0.0.0.0</code> to reach it from another device."},
       {t:"Point the playground at it", p:`Base URL <code>${esc(BACKENDS.kev.base)}</code>, model <code>kev-latest</code>.`, use:true}
-    ]};
-  return {
-    title:"Use hosted Jev", sub:"TypeSafe · HTTPS",
-    intro:`<span class="warn-t"><b>Heads-up:</b> TypeSafe's API currently refuses calls made by browsers on other websites (it answers <code>Disallowed CORS origin</code>), so Jev can't run from this playground.</span> It works fine from code with your API key.`,
-    steps:[
-      {t:"Get an API key", p:`Sign up at <a href="https://typesafe.dev">typesafe.dev</a>.`},
-      {t:"Call it from a terminal or your backend",
-       cmd:`curl -s https://api.typesafe.ai/v1/systemone \\\n  -H "authorization: Bearer $TYPESAFE_KEY" \\\n  -H 'content-type: application/json' \\\n  -d '{"model":"jev-latest","state":{"text":"I love it"},\n       "questions":{"positive":{"type":"noul","instructions":"Is this positive?"}}}'`,
-       note:"Python and JavaScript versions are in §6 — same body, same answers."},
-      {t:"In this playground (once TypeSafe allows it)", p:`Base URL <code>${esc(BACKENDS.jev.base)}</code>, model <code>jev-latest</code>, then paste your key into <b>API key</b>. TypeSafe would need to allow <code>${esc(PAGE_ORIGIN)}</code>.`,
-       note:"The key stays in this tab and is sent only to the endpoint above.", use:true}
     ]};
 }
 function renderGuide(k){
