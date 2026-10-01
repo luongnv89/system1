@@ -23,6 +23,7 @@ probabilities instead of prose.
 | Endpoint | Base URL | Auth | Model |
 |---|---|---|---|
 | Kev (local, OSS) | `http://localhost:8009/v1` | none | `kev-latest` |
+| Ollama 0.35+ (local, Nimble) | `http://localhost:11434/v1` | none (needs `OLLAMA_ORIGINS`) | `nimble` |
 | Jev (hosted, TypeSafe) | `https://api.typesafe.ai/v1` | `Authorization: Bearer KEY` | `jev-latest` |
 
 Run a local Kev backend:
@@ -31,6 +32,17 @@ Run a local Kev backend:
 uv sync --extra serve   # in a clone of github.com/jaredpalmer/kev
 python -m kev.serve --run jaredpalmer/kev-4b --port 8009
 ```
+
+Or run Nimble on Ollama (0.35+ serves `/v1/systemone` natively; only Nimble/Tev models):
+
+```bash
+ollama pull nimble                                   # ~9 GB, 9B Q8_0
+OLLAMA_ORIGINS="https://luongnv.com" ollama serve    # allow the page's origin
+# add OLLAMA_HOST=0.0.0.0:11434 to reach it from other devices
+```
+
+The playground's **Setup guide** walks through this and fills in the right origin for wherever the
+page is served.
 
 `kev.serve` sets `Access-Control-Allow-Origin: *`, so the site can call it straight
 from the browser. Two gotchas:
